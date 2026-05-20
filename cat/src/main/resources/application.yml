@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: cat
+  datasource:
+    url: jdbc:mysql://172.30.0.4:3306/pet?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME:mysql}
+    password: ${DB_PASSWORD:default_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
