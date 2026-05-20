@@ -59,7 +59,7 @@ public class Pet {
      * 宠物体重
      */
     @TableField(value = "pet_weight")
-    private String petWeight;
+    private Double petWeight;
 
     /**
      * 宠物品种
