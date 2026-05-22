@@ -27,6 +27,12 @@ public class Conversation {
     private Long userId;
 
     /**
+     * The conversation petId
+     */
+    @TableField(value = "pet_id")
+    private Long petId;
+
+    /**
      * The name of the chat
      */
     @TableField(value = "title")

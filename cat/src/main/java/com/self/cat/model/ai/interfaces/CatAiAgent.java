@@ -10,5 +10,6 @@ public interface CatAiAgent {
     // @MemoryId tells LangChain4j which conversation to load
     // @MemoryId 告诉 LangChain4j 加载哪个对话
     String chat(@MemoryId Long conversationId,
-                @UserMessage String userMessage);
+                @UserMessage String userMessage
+                );
 }

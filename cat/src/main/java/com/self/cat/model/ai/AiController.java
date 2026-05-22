@@ -44,9 +44,10 @@ public class AiController {
 
     @GetMapping("/startConversation")
     @Operation(summary = "开启会话")
-    public HttpResult<Long> startConversation() {
+    public HttpResult<Long> startConversation(Long petId) {
         // 先创建会话
         Conversation conversation = new Conversation();
+        conversation.setPetId(petId);
         conversation.setTitle(null);
         // TODO
         conversation.setUserId(1L);

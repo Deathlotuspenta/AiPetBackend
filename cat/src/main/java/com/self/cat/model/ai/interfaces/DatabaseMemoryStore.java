@@ -42,6 +42,10 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
 
         // 1. Get the pet data from your database (example data here)
         // 1. 从你的数据库获取宠物数据（此处为示例数据）
+        Conversation conversation = conversationService.getById(conversationId);
+        // TODO 拿到了宠物ID就去日程表中找对应宠物要做什么事情，但是我感觉，宠物之间跨事件好一点 例如A宠物知道B宠物要干嘛
+        Long petId = conversation.getPetId();
+
         String petType = "金毛犬";
         String name = "大黄";
         int age = 3;
