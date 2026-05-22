@@ -29,6 +29,18 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         this.conversationService = conversationService;
     }
 
+    // TODO
+    /**
+     * 当聊天记录超过 50 条时，你删除最旧的 20 条
+     * 你让 AI 总结那 20 条消息。
+     * 你将这段文本存入数据库，角色标记为 SUMMARY。
+     * 当你加载聊天记录时，你寻找 SUMMARY 记录。
+     * 如果有多个总结，你只取最新的那一个。
+     * 它和宠物数据结合在一起，变成一个全新且庞大的 SystemMessage。
+     * 注意：需要异步执行
+     * 每次用户发消息都执行一次超过50行就执行总结 并插入 没有超过就 跳过 直接return
+     * **/
+
     // LangChain4j calls this to read history
     // LangChain4j 调用这个来读取历史记录
     @Override
