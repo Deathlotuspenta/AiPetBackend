@@ -70,24 +70,14 @@ public class AiController {
         if (conversation == null) {
             return HttpResult.error(ResultCode.ERROR.getCode(), "会话不存在,请重新新建会话");
         }
-        // 1. Get the pet data from your database (example data here)
-        // 1. 从你的数据库获取宠物数据（此处为示例数据）
-        String petType = "金毛犬";
-        String name = "大黄";
-        int age = 3;
-        double weight = 25.5;
-        String schedule = "下午5点要去公园散步，晚上吃牛肉罐头。";
+
+
 
         // 2. Pass the data directly to the agent
         // 2. 将数据直接传递给代理
         String aiAnswer = catAiAgent.chat(
                 conversationId,
-                userMessage,
-                petType,
-                name,
-                age,
-                weight,
-                schedule
+                userMessage
         );
 
         return HttpResult.success(aiAnswer);

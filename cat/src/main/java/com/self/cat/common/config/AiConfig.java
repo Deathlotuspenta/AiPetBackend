@@ -33,7 +33,7 @@ public class AiConfig {
                 // 设置记忆窗口
                 .chatMemoryProvider(memoryId -> MessageWindowChatMemory.builder()
                         .id(memoryId)
-                        .maxMessages(20) // Only keep the last 20 messages (只保留最近20条消息)
+                        .maxMessages(50) // Only keep the last 20 messages (只保留最近20条消息)
                         .chatMemoryStore(databaseMemoryStore) // Use your database (使用你的数据库)
                         .build())
                 .build();
