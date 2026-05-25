@@ -7,6 +7,7 @@ import com.self.cat.model.ai.domain.Conversation;
 import com.self.cat.model.ai.domain.dto.MessageDto;
 import com.self.cat.model.ai.interfaces.CatAiAgent;
 import com.self.cat.model.ai.service.ChatRecordService;
+import com.self.cat.model.ai.service.ChatSummaryService;
 import com.self.cat.model.ai.service.ConversationService;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -29,14 +30,18 @@ public class AiController {
     // This is the LangChain4j model
     private final ChatLanguageModel chatLanguageModel;
 
+    private final ChatSummaryService chatSummaryService;
+
     private final CatAiAgent catAiAgent;
 
     // Inject the services in the constructor
     public AiController(ConversationService conversationService,
                           ChatRecordService chatRecordService,
                           ChatLanguageModel chatLanguageModel,
-                        CatAiAgent catAiAgent) {
+                        CatAiAgent catAiAgent,
+                        ChatSummaryService chatSummaryService) {
         this.conversationService = conversationService;
+        this.chatSummaryService = chatSummaryService;
         this.catAiAgent = catAiAgent;
         this.chatRecordService = chatRecordService;
         this.chatLanguageModel = chatLanguageModel;
@@ -80,6 +85,8 @@ public class AiController {
                 conversationId,
                 userMessage
         );
+
+        chatSummaryService.summarizeAndCleanOldMessages(conversationId);
 
         return HttpResult.success(aiAnswer);
     }
