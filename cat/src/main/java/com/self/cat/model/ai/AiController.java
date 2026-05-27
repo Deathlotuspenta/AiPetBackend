@@ -1,5 +1,6 @@
 package com.self.cat.model.ai;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.self.cat.common.enums.ResultCode;
 import com.self.cat.common.http.HttpResult;
 import com.self.cat.model.ai.domain.ChatRecord;
@@ -53,6 +54,17 @@ public class AiController {
     @GetMapping("/startConversation")
     @Operation(summary = "开启会话")
     public HttpResult<Long> startConversation(Long petId) {
+        // 查找这个宠物的会话如存在就返回该宠物的会话
+        LambdaQueryWrapper<Conversation> queryWrapper = new LambdaQueryWrapper<Conversation>();
+        queryWrapper.eq(Conversation::getPetId, petId);
+
+        Conversation one = conversationService.getOne(queryWrapper);
+
+        if (one != null) {
+            HttpResult.success(one.getId());
+        }
+
+
         // 先创建会话
         Conversation conversation = new Conversation();
         conversation.setPetId(petId);
