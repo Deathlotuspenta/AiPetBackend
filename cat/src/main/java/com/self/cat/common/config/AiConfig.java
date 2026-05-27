@@ -4,7 +4,9 @@ import com.self.cat.model.ai.interfaces.CatAiAgent;
 import com.self.cat.model.ai.interfaces.DatabaseMemoryStore;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,8 +26,25 @@ public class AiConfig {
     }
 
     @Bean
+    public StreamingChatLanguageModel streamingChatModel() {
+        // Build and return your streaming model here.
+        // 在这里构建并返回您的流式模型。
+
+        // This is an OpenAI example. Change it if you use a different AI provider.
+        // 这是一个 OpenAI 的示例。如果您使用其他 AI 提供商，请更改它。
+        return OpenAiStreamingChatModel.builder()
+                .baseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1")
+                .apiKey("sk-7a47752ca37c4e0aa1d59ce523d5312a")
+                .modelName("qwen3.6-flash")
+                .logRequests(true)  // 1. Log what goes out (记录发出的内容)
+                .logResponses(true) // 2. Log what comes back (记录返回的内容)
+                .build();
+    }
+
+    @Bean
     public CatAiAgent catAiAgent(ChatLanguageModel chatLanguageModel,
-                                 DatabaseMemoryStore databaseMemoryStore) {
+                                 DatabaseMemoryStore databaseMemoryStore,
+                                 StreamingChatLanguageModel streamingModel) {
 
         return AiServices.builder(CatAiAgent.class)
                 .chatLanguageModel(chatLanguageModel)
@@ -36,6 +55,7 @@ public class AiConfig {
                         .maxMessages(50) // Only keep the last 20 messages (只保留最近20条消息)
                         .chatMemoryStore(databaseMemoryStore) // Use your database (使用你的数据库)
                         .build())
+                .streamingChatLanguageModel(streamingModel) // THIS IS REQUIRED FOR TokenStream
                 .build();
     }
 

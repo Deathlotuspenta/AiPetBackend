@@ -11,9 +11,12 @@ import com.self.cat.model.ai.service.ChatSummaryService;
 import com.self.cat.model.ai.service.ConversationService;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.input.PromptTemplate;
+import dev.langchain4j.service.TokenStream;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -65,30 +68,63 @@ public class AiController {
         return HttpResult.success(conversation.getId());
     }
 
-    @PostMapping("/chat")
+    @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "聊天")
-    public HttpResult<String> chat(@RequestBody MessageDto message) {
-        String userMessage = message.getMessage();
+    public SseEmitter chat(@RequestBody MessageDto message) {
 
-        // 查找会话是否存在
+        String userMessage = message.getMessage();
         Long conversationId = message.getConversationId();
+
+        // 2. Check if conversation exists
+        // 2. 查找会话是否存在
         Conversation conversation = conversationService.getById(conversationId);
         if (conversation == null) {
-            return HttpResult.error(ResultCode.ERROR.getCode(), "会话不存在,请重新新建会话");
+            // If error, we still return SseEmitter but close it with an error message
+            // 如果出错，我们仍然返回 SseEmitter，但用错误消息关闭它
+            SseEmitter errorEmitter = new SseEmitter();
+            errorEmitter.completeWithError(new RuntimeException("会话不存在,请重新新建会话"));
+            return errorEmitter;
         }
 
+        // 3. Create SseEmitter (Timeout is set to 0, which means infinite)
+        // 3. 创建 SseEmitter（超时设置为 0，这意味着无限期）
+        SseEmitter emitter = new SseEmitter(0L);
 
+        // 4. Get the TokenStream from AI
+        // 4. 从 AI 获取 TokenStream
+        TokenStream tokenStream = catAiAgent.chat(conversationId, userMessage);
 
-        // 2. Pass the data directly to the agent
-        // 2. 将数据直接传递给代理
-        String aiAnswer = catAiAgent.chat(
-                conversationId,
-                userMessage
-        );
+        // 5. Handle the stream events
+        // 5. 处理流事件
+        tokenStream
+                .onPartialResponse(token -> {
+                    // When a new word arrives, send it to the frontend
+                    // 当新词到达时，将其发送给前端
+                    try {
+                        emitter.send(token);
+                    } catch (Exception e) {
+                        emitter.completeWithError(e);
+                    }
+                })
+                .onCompleteResponse(response -> {
+                    // When the AI finishes talking, close the stream
+                    // 当 AI 完成讲话时，关闭流
+                    emitter.complete();
 
-        chatSummaryService.summarizeAndCleanOldMessages(conversationId);
+                    // IMPORTANT: Trigger the summary check HERE
+                    // 重要提示：在这里触发总结检查
+                    chatSummaryService.summarizeAndCleanOldMessages(conversationId);
+                })
+                .onError(error -> {
+                    // If AI fails, close stream with error
+                    // 如果 AI 失败，用错误关闭流
+                    emitter.completeWithError(error);
+                })
+                .start(); // Start the stream (启动流)
 
-        return HttpResult.success(aiAnswer);
+        // 6. Return the emitter immediately
+        // 6. 立即返回 emitter
+        return emitter;
     }
 
 }
