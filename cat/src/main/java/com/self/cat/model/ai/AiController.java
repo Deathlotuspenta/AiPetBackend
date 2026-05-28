@@ -51,17 +51,17 @@ public class AiController {
         this.chatLanguageModel = chatLanguageModel;
     }
 
-    @GetMapping("/startConversation")
+    @GetMapping("/startConversation/{petId}")
     @Operation(summary = "开启会话")
-    public HttpResult<Long> startConversation(Long petId) {
+    public HttpResult<Long> startConversation(@PathVariable Long petId) {
         // 查找这个宠物的会话如存在就返回该宠物的会话
         LambdaQueryWrapper<Conversation> queryWrapper = new LambdaQueryWrapper<Conversation>();
-        queryWrapper.eq(Conversation::getPetId, petId);
+        queryWrapper.eq(Conversation::getPetId, petId).last("limit 1");
 
         Conversation one = conversationService.getOne(queryWrapper);
 
         if (one != null) {
-            HttpResult.success(one.getId());
+            return HttpResult.success(one.getId());
         }
 
 
