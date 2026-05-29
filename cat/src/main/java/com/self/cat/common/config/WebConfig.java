@@ -21,6 +21,6 @@ public class WebConfig implements WebMvcConfigurer {
 
                 // Tell it to ignore the login path.
                 // 告诉它忽略登录路径。
-                .excludePathPatterns("/login");
+                .excludePathPatterns("/user/login","/user/userRegister");
     }
 }
