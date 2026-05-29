@@ -6,3 +6,21 @@ spring:
     username: ${DB_USERNAME:mysql}
     password: ${DB_PASSWORD:default_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      #      password: root
+      password: ${REDIS_PASSWORD}
+      host: 172.30.0.4
+      database: 10
+      port: 6379
+      # 新增：Lettuce连接池配置
+      lettuce:
+        pool:
+          max-active: 16       # 最大连接数（建议：CPU核心数*2，或根据Redis并发量调整）
+          max-idle: 8          # 最大空闲连接
+          min-idle: 4          # 最小空闲连接
+          max-wait: 1000       # 获取连接的最大等待时间（毫秒，避免无限阻塞）
+        shutdown-timeout: 2000 # 关闭连接池的超时时间
+
+jwt:
+  secret: ${JWT_SECRET}

@@ -21,7 +21,10 @@ public enum ResultCode {
 
     // Pet error codes (custom)
     SAVE_PET_ERROR(2001,"保存失败"),
-    DELETE_PER_ERROR(2002,"删除失败");
+    DELETE_PER_ERROR(2002,"删除失败"),
+
+    // User error codes
+    LOGIN_USER(3001,"账号或密码错误");
 
     private final int code;
     private final String message;
