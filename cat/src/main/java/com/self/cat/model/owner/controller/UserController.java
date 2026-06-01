@@ -9,6 +9,7 @@ import com.self.cat.model.owner.domain.dto.UserRegisterDto;
 import com.self.cat.model.owner.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @RestController
 @RequestMapping("/user")
 @Tag(name = "用户管理",description = "用户管理相关")
@@ -48,7 +50,8 @@ public class UserController {
 
     @PostMapping("/login")
     @Operation(summary = "用户登录")
-    public HttpResult<String> login(LoginDto login) {
+    public HttpResult<String> login(@RequestBody LoginDto login) {
+        log.info("登录控制器被执行");
         String phone = login.getPhone();
         String password = login.getPassword();
 

@@ -18,7 +18,7 @@ public class AiConfig {
     public ChatLanguageModel chatLanguageModel() {
         return OpenAiChatModel.builder()
                 .baseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1")
-                .apiKey("sk-7a47752ca37c4e0aa1d59ce523d5312a")
+                .apiKey("sk-96280128c4384cdb9e5753fdcc458773")
                 .modelName("qwen3.6-flash")
                 .logRequests(true)  // 1. Log what goes out (记录发出的内容)
                 .logResponses(true) // 2. Log what comes back (记录返回的内容)
@@ -34,7 +34,7 @@ public class AiConfig {
         // 这是一个 OpenAI 的示例。如果您使用其他 AI 提供商，请更改它。
         return OpenAiStreamingChatModel.builder()
                 .baseUrl("https://dashscope.aliyuncs.com/compatible-mode/v1")
-                .apiKey("sk-7a47752ca37c4e0aa1d59ce523d5312a")
+                .apiKey("sk-96280128c4384cdb9e5753fdcc458773")
                 .modelName("qwen3.6-flash")
                 .logRequests(true)  // 1. Log what goes out (记录发出的内容)
                 .logResponses(true) // 2. Log what comes back (记录返回的内容)
