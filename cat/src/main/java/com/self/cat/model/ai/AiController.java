@@ -3,6 +3,7 @@ package com.self.cat.model.ai;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.self.cat.common.enums.ResultCode;
 import com.self.cat.common.http.HttpResult;
+import com.self.cat.common.utils.UserContext;
 import com.self.cat.model.ai.domain.ChatRecord;
 import com.self.cat.model.ai.domain.Conversation;
 import com.self.cat.model.ai.domain.dto.MessageDto;
@@ -54,6 +55,8 @@ public class AiController {
     @GetMapping("/startConversation/{petId}")
     @Operation(summary = "开启会话")
     public HttpResult<Long> startConversation(@PathVariable Long petId) {
+
+        String id = UserContext.get("id");
         // 查找这个宠物的会话如存在就返回该宠物的会话
         LambdaQueryWrapper<Conversation> queryWrapper = new LambdaQueryWrapper<Conversation>();
         queryWrapper.eq(Conversation::getPetId, petId).last("limit 1");
@@ -69,8 +72,7 @@ public class AiController {
         Conversation conversation = new Conversation();
         conversation.setPetId(petId);
         conversation.setTitle(null);
-        // TODO
-        conversation.setUserId(1L);
+        conversation.setUserId(Long.valueOf(id));
         Date date = new Date();
         conversation.setCreatedAt(date);
         conversation.setUpdatedAt(date);

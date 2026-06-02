@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.self.cat.common.enums.ResultCode;
 import com.self.cat.common.exception.PetException;
 import com.self.cat.common.http.HttpResult;
+import com.self.cat.common.utils.UserContext;
 import com.self.cat.model.mypet.domain.Pet;
 import com.self.cat.model.mypet.service.PetService;
 import com.self.cat.model.owner.domain.dto.SavePetInformationDto;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/pet")
@@ -28,7 +30,7 @@ public class PetController {
     @GetMapping("/getMyPetList")
     @Operation(summary = "获取我的宠物列表")
     public HttpResult<List<Pet>> getMyPetList() {
-        int id = 1;
+        int id = Integer.parseInt(Objects.requireNonNull(UserContext.get("id")));
         return HttpResult.success(petService.getMyPetList(id));
     }
 
@@ -45,6 +47,8 @@ public class PetController {
     @DeleteMapping("/deleteMyPetInformation/{id}")
     @Operation(summary = "删除我的宠物信息")
     public HttpResult<String> deletePet(@PathVariable Integer id) {
+        // 需要判断是不是自己的宠物
+
         boolean b = petService.removeById(id);
         if (b) {
             return HttpResult.success("删除成功");

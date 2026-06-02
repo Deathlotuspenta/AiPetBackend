@@ -70,17 +70,20 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public String createJwt(User user) {
 
         SecretKey secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        int time30day = 1000 * 60 * 60 * 24 * 30;
+        long time30day = 1000L * 60 * 60 * 24 * 30;
         Date now = new Date();
         Date expiration = new Date(now.getTime() + time30day);
-        Map<String, Object> claims = new HashMap<String, Object>();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", user.getId());
         claims.put("username", user.getUsername());
         claims.put("phone", user.getPhone());
-        String compact = Jwts.builder().setClaims(claims).setIssuedAt(now)              // Add start time
+        // Add start time
+        // Add end time
+        // Add signature
+        return Jwts.builder().setClaims(claims).setIssuedAt(now)              // Add start time
                 .setExpiration(expiration)     // Add end time
                 .signWith(secretKey)                 // Add signature
                 .compact();
-        return compact;
     }
 }
 
