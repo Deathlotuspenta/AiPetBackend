@@ -46,6 +46,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             Claims claims = Jwts.parserBuilder() // Use parserBuilder() for new JJWT versions / 新版 JJWT 使用 parserBuilder()
                     .setSigningKey(secretKey)
                     .build()
+                    // parseClaimsJws() will throw an exception if the token is invalid or expired.
                     .parseClaimsJws(token)
                     .getBody();
 

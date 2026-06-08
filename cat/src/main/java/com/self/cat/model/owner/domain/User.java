@@ -27,6 +27,12 @@ public class User {
     private String username;
 
     /**
+     * 微信用户的OpenId
+     */
+    @TableField(value = "open_id")
+    private String openId;
+
+    /**
      * 用户手机号
      */
     @TableField(value = "phone")

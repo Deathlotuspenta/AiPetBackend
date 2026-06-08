@@ -24,7 +24,8 @@ public enum ResultCode {
     DELETE_PER_ERROR(2002,"删除失败"),
 
     // User error codes
-    LOGIN_USER(3001,"账号或密码错误");
+    LOGIN_USER(3001,"账号或密码错误"),
+    NOT_LOGIN(3002,"请先登录");
 
     private final int code;
     private final String message;
