@@ -19,7 +19,7 @@ WORKDIR /app
 COPY --from=builder /app/target/*.jar app.jar
 
 # Open the port / 打开端口
-EXPOSE 80
+EXPOSE 8080
 
 # Start the server / 启动服务器
 ENTRYPOINT ["java", "-jar", "app.jar"]
