@@ -1,16 +1,25 @@
-# 1. Base environment / 基础环境
-FROM openjdk:17-jdk-slim
+# Stage 1: Build the code / 第一阶段：构建代码
+FROM maven:3.8.5-openjdk-17 AS builder
 
-# 2. Set working folder / 设置工作文件夹
+# Set working folder / 设置工作文件夹
 WORKDIR /app
 
-# 3. Copy the jar file / 复制 jar 文件
-# This copies any jar in the target folder and renames it to app.jar
-# 这会复制 target 文件夹中的任何 jar 包，并将其重命名为 app.jar
-COPY target/*.jar app.jar
+# Copy all your code / 复制你所有的代码
+COPY . .
 
-# 4. Open the port / 打开端口
-EXPOSE 80
+# Run Maven to build the jar / 运行 Maven 打包 jar
+RUN mvn clean package -DskipTests
 
-# 5. Start the server / 启动服务器
+# Stage 2: Run the code / 第二阶段：运行代码
+FROM openjdk:17-jdk-slim
+
+WORKDIR /app
+
+# Copy the jar from Stage 1 / 从第一阶段复制 jar 包
+COPY --from=builder /app/target/*.jar app.jar
+
+# Open the port / 打开端口
+EXPOSE 8080
+
+# Start the server / 启动服务器
 ENTRYPOINT ["java", "-jar", "app.jar"]
