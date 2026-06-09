@@ -24,3 +24,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+wx:
+  appId: ${WX_APPID}
+  appSecret: ${WX_SECRET}
