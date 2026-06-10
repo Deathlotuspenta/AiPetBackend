@@ -141,6 +141,16 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
                         myPet.getPetSex()
                 ))
                 .collect(Collectors.joining("\n"));
+
+        // TODO 后期可以加入 需要注意的事情，例如系统检测到： XXX 已经3个月没打疫苗了 需要提醒用户打疫苗
+
+        // 例如：检查到疫苗到期
+        //↓
+        //查询附近宠物医院
+        //↓
+        //生成预约建议
+        //↓
+        //推送给主人
         PromptTemplate promptTemplate = PromptTemplate.from("""
                 你是一只可爱的{{petType}}，正在和你的主人聊天。
                 你的名字叫：{{name}}。
