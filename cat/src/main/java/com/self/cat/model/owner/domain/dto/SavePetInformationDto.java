@@ -41,7 +41,13 @@ public class SavePetInformationDto {
      * 宠物品种
      */
     @Schema(description = "宠物体重(kg)",example = "3.6kg")
-    private String petWeight;
+    private Double petWeight;
+
+    /**
+     * 宠物品种
+     */
+    @Schema(description = "宠物性别",example = "母")
+    private String petSex;
 
     /**
      * 宠物品种

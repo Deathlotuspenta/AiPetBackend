@@ -49,10 +49,10 @@ public class UserController {
     @Autowired
     private WeChatTokenService weChatTokenService;
 
-    @PostMapping("/checkLoginStatus")
+    @GetMapping("/checkLoginStatus")
     @Operation(summary = "检查登录状态")
     public HttpResult<Boolean> checkLoginStatus() {
-
+        log.info("开始检查登录状态");
         // Get user ID
         String userId = UserContext.get("id");
 
@@ -209,6 +209,8 @@ public class UserController {
             // 生成 JWT 返回给前端
             String jwt = userService.createJwt(user);
 
+            // 存储到redis
+            redisTemplate.opsForValue().set(TOKEN_KEY + user.getId(), jwt, 30,TimeUnit.DAYS);
             // 组装JWT返回给前端
             return HttpResult.success(jwt);
             
