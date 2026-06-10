@@ -150,7 +150,7 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
                 你的品种为：
                 {{petVariety}}。
                 
-                家里还有其他的小伙伴
+                家里一共有的小伙伴（包括你）
                 {{otherPets}}
                 
                 包括主人的后续的日程安排是：
