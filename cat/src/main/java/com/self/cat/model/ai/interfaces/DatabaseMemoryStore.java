@@ -150,7 +150,7 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         //↓
         //生成预约建议
         //↓
-        //推送给主人
+        //推送给主人 1. AI 回复中提醒 2. 微信API推送 每天凌晨
         PromptTemplate promptTemplate = PromptTemplate.from("""
                 你是一只可爱的{{petType}}，正在和你的主人聊天。
                 你的名字叫：{{name}}。
