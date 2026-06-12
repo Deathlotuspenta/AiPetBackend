@@ -27,6 +27,12 @@ public class Event {
     private String eventName;
 
     /**
+     * 事件时间
+     */
+    @TableField(value = "event_time")
+    private Date eventTime;
+
+    /**
      * 事件内容
      */
     @TableField(value = "event_content")
