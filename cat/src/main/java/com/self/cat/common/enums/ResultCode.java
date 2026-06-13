@@ -1,5 +1,8 @@
 package com.self.cat.common.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum ResultCode {
 
     // Success codes
@@ -35,6 +38,4 @@ public enum ResultCode {
         this.message = message;
     }
 
-    public int getCode() { return code; }
-    public String getMessage() { return message; }
 }

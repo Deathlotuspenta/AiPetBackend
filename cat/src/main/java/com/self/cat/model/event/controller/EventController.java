@@ -2,10 +2,13 @@ package com.self.cat.model.event.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.self.cat.common.enums.SourceName;
 import com.self.cat.common.http.HttpResult;
+import com.self.cat.common.service.PermissionService;
 import com.self.cat.common.utils.UserContext;
-import com.self.cat.model.event.domain.AddEventDto;
+import com.self.cat.model.event.domain.dto.AddEventDto;
 import com.self.cat.model.event.domain.Event;
+import com.self.cat.model.event.domain.vo.EventPageVO;
 import com.self.cat.model.event.service.EventService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -19,9 +22,11 @@ import java.util.Date;
 public class EventController {
 
     private final EventService eventService;
+    private final PermissionService permissionService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, PermissionService permissionService) {
         this.eventService = eventService;
+        this.permissionService = permissionService;
     }
 
     private static final String DEFAULT_ORDER = """
@@ -34,8 +39,22 @@ public class EventController {
                 event_time ASC
             """;
 
+    @PutMapping("/updateMyEvent/{id}")
+    public HttpResult<String> updateMyEvent(
+            @PathVariable("id") Long id,
+            @RequestBody Event event
+    ){
+        Long userId = Long.valueOf(UserContext.get("id"));
+        boolean b = permissionService.hasPermission(userId, SourceName.EVENT, id);
+        if (!b) {
+            return HttpResult.error(403, "无权限");
+        }
+        event.setId(Math.toIntExact(id));
+        return HttpResult.success(eventService.updateById(event) ? "更新成功" : "更新失败");
+    }
+
     @GetMapping("/getMyEventList")
-    public HttpResult<Page<Event>> getMyEventList(
+    public HttpResult<EventPageVO> getMyEventList(
             String status,
             Integer pageNum,
             Integer pageSize,
@@ -92,8 +111,33 @@ public class EventController {
             queryWrapper.eq(Event::getPetId, petId);
         }
 
+        // 查找待完成的
+        LambdaQueryWrapper<Event> queryUncompletedQuery = new LambdaQueryWrapper<>();
+        queryUncompletedQuery.eq(Event::getUserId, userId)
+                .eq(Event::getIsCompleted, 0);
+        if (keyword != null && !keyword.isBlank()){
+            queryUncompletedQuery.and(wrapper ->
+                    wrapper.like(Event::getEventName, keyword)
+                            .or()
+                            .like(Event::getEventContent, keyword)
+                            .or()
+                            .like(Event::getPetName, keyword)
+            );
+        }
+        if (petId != null){
+            queryUncompletedQuery.eq(Event::getPetId, petId);
+        }
+
+        long uncompletedCount = eventService.count(queryUncompletedQuery);
+        Page<Event> dataPage = eventService.page(page, queryWrapper);
+        EventPageVO eventPageVO = new EventPageVO();
+
+        BeanUtils.copyProperties(dataPage, eventPageVO);
+
+        eventPageVO.setUncompleted(uncompletedCount);
+
         return HttpResult.success(
-                eventService.page(page, queryWrapper)
+            eventPageVO
         );
     }
 

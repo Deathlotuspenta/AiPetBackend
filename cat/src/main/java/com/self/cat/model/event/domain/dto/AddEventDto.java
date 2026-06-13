@@ -1,4 +1,4 @@
-package com.self.cat.model.event.domain;
+package com.self.cat.model.event.domain.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

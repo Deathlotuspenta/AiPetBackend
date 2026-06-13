@@ -41,6 +41,21 @@ public class PetServiceImpl extends ServiceImpl<PetMapper, Pet>
         p.setPetMasterId(Integer.valueOf(id));
         return this.save(p);
     }
+
+    @Override
+    public boolean hasPermission(
+            Long userId,
+            Long resourceId) {
+
+        Pet pet = this.getById(resourceId);
+
+        if (pet == null) {
+            return false;
+        }
+
+        return userId
+                == pet.getPetMasterId().longValue();
+    }
 }
 
 

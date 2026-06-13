@@ -10,4 +10,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface EventService extends IService<Event> {
 
+    boolean hasPermission(Long userId, Long resourceId);
 }

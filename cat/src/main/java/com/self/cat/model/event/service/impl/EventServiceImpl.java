@@ -15,6 +15,14 @@ import org.springframework.stereotype.Service;
 public class EventServiceImpl extends ServiceImpl<EventMapper, Event>
     implements EventService{
 
+    @Override
+    public boolean hasPermission(Long userId, Long resourceId) {
+
+        Event event = this.getById(resourceId);
+
+        return event != null
+                && userId.equals(event.getUserId().longValue());
+    }
 }
 
 
