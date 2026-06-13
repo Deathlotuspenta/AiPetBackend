@@ -53,6 +53,18 @@ public class EventController {
         return HttpResult.success(eventService.updateById(event) ? "更新成功" : "更新失败");
     }
 
+    @DeleteMapping("/deleteMyEvent/{id}")
+    public HttpResult<String> deleteMyEvent(
+            @PathVariable("id") Long id
+    ){
+        Long userId = Long.valueOf(UserContext.get("id"));
+        boolean b = permissionService.hasPermission(userId, SourceName.EVENT, id);
+        if (!b) {
+            return HttpResult.error(403, "无权限");
+        }
+        return HttpResult.success(eventService.removeById(id) ? "删除成功" : "删除失败");
+    }
+
     @GetMapping("/getMyEventList")
     public HttpResult<EventPageVO> getMyEventList(
             String status,
