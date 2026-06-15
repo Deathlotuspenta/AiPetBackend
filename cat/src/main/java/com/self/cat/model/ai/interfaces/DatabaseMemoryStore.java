@@ -9,6 +9,8 @@ import com.self.cat.model.ai.domain.Conversation;
 import com.self.cat.model.ai.service.ChatRecordService;
 import com.self.cat.model.ai.service.ChatSummaryService;
 import com.self.cat.model.ai.service.ConversationService;
+import com.self.cat.model.event.domain.Event;
+import com.self.cat.model.event.service.EventService;
 import com.self.cat.model.mypet.domain.Pet;
 import com.self.cat.model.mypet.service.PetService;
 import dev.langchain4j.data.message.AiMessage;
@@ -34,14 +36,16 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
     private final ConversationService conversationService;
     private final ChatSummaryService chatSummaryService;
     private final PetService petService;
+    private final EventService eventService;
 
     public DatabaseMemoryStore(ChatRecordService chatRecordService,
                                ConversationService conversationService,
-                               ChatSummaryService chatSummaryService, PetService petService) {
+                               ChatSummaryService chatSummaryService, PetService petService, EventService eventService) {
         this.chatRecordService = chatRecordService;
         this.conversationService = conversationService;
         this.chatSummaryService = chatSummaryService;
         this.petService = petService;
+        this.eventService = eventService;
     }
 
 
@@ -122,10 +126,21 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         String petVariety = pet.getPetVariety();
         String petSex = pet.getPetSex();
 
-        // TODO 拿到了宠物ID就去日程表中找对应宠物要做什么事情，但是我感觉，宠物之间跨事件好一点 例如A宠物知道B宠物要干嘛
-        String schedule = "下午5点要去公园散步，晚上吃牛肉罐头。\n 煤团要去宠物医院体检";
-
         String userId = UserContext.get("id");
+        LambdaQueryWrapper<Event> eventLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        eventLambdaQueryWrapper.eq(Event::getUserId, userId)
+                .eq(Event::getIsCompleted, 0);
+        List<Event> list = eventService.list(eventLambdaQueryWrapper);
+        String schedule = list.stream()
+                .map(event -> String.format(
+                        "事件名称:%s, 时间:%s, 宠物名称:%s",
+                        event.getEventName(),
+                        event.getEventTime(),
+                        event.getPetName()
+                ))
+                .collect(Collectors.joining("\n"));
+
+
         LambdaQueryWrapper<Pet> petQuery = new LambdaQueryWrapper<>();
         petQuery.eq(Pet::getPetMasterId, userId);
         List<Pet> pets = petService.list(petQuery);
@@ -141,6 +156,8 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
                         myPet.getPetSex()
                 ))
                 .collect(Collectors.joining("\n"));
+
+        Date now = new Date();
 
         // TODO 后期可以加入 需要注意的事情，例如系统检测到： XXX 已经3个月没打疫苗了 需要提醒用户打疫苗
 
@@ -163,7 +180,7 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
                 家里一共有的小伙伴（包括你）
                 {{otherPets}}
                 
-                包括主人的后续的日程安排是：
+                包括主人的后续的日程安排是（如果有过期的需要立刻提醒，当前日期为：{{dateNow}}）：
                 {{schedule}}
                 
                 你的性格和行为要求：
@@ -194,6 +211,7 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         data.put("weight", weight);
         data.put("petVariety", petVariety);
         data.put("schedule", schedule);
+        data.put("dateNow", now);
         data.put("otherPets", otherPets);
         if (latestSummary != null) {
             data.put("chat_summary", latestSummary.getContent());
