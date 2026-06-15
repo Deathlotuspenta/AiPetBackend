@@ -22,6 +22,7 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
@@ -158,6 +159,9 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
                 .collect(Collectors.joining("\n"));
 
         Date now = new Date();
+        // 转换为年月日
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String nowDate = sdf.format(now);
 
         // TODO 后期可以加入 需要注意的事情，例如系统检测到： XXX 已经3个月没打疫苗了 需要提醒用户打疫苗
 
@@ -211,7 +215,7 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         data.put("weight", weight);
         data.put("petVariety", petVariety);
         data.put("schedule", schedule);
-        data.put("dateNow", now);
+        data.put("dateNow", nowDate);
         data.put("otherPets", otherPets);
         if (latestSummary != null) {
             data.put("chat_summary", latestSummary.getContent());
