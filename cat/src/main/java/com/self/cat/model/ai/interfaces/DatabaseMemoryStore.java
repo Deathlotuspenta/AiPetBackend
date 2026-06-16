@@ -3,11 +3,16 @@ package com.self.cat.model.ai.interfaces;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.self.cat.common.utils.UserContext;
 import com.self.cat.model.ai.domain.ChatRecord;
 import com.self.cat.model.ai.domain.Conversation;
 import com.self.cat.model.ai.service.ChatRecordService;
 import com.self.cat.model.ai.service.ChatSummaryService;
 import com.self.cat.model.ai.service.ConversationService;
+import com.self.cat.model.event.domain.Event;
+import com.self.cat.model.event.service.EventService;
+import com.self.cat.model.mypet.domain.Pet;
+import com.self.cat.model.mypet.service.PetService;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -17,7 +22,12 @@ import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -26,16 +36,20 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
     private final ChatRecordService chatRecordService;
     private final ConversationService conversationService;
     private final ChatSummaryService chatSummaryService;
+    private final PetService petService;
+    private final EventService eventService;
 
     public DatabaseMemoryStore(ChatRecordService chatRecordService,
                                ConversationService conversationService,
-                               ChatSummaryService chatSummaryService) {
+                               ChatSummaryService chatSummaryService, PetService petService, EventService eventService) {
         this.chatRecordService = chatRecordService;
         this.conversationService = conversationService;
         this.chatSummaryService = chatSummaryService;
+        this.petService = petService;
+        this.eventService = eventService;
     }
 
-    // TODO
+
 
     /**
      * 当聊天记录超过 50 条时，你删除最旧的 20 条 不要删除！！！！不然聊天记录会丢失！！！！前端显示就会有问题
@@ -87,21 +101,90 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         // 1. Get the pet data from your database (example data here)
         // 1. 从你的数据库获取宠物数据（此处为示例数据）
         Conversation conversation = conversationService.getById(conversationId);
-        // TODO 拿到了宠物ID就去日程表中找对应宠物要做什么事情，但是我感觉，宠物之间跨事件好一点 例如A宠物知道B宠物要干嘛
         Long petId = conversation.getPetId();
+        Pet pet = petService.getById(petId);
+        String petType = pet.getPetType();
+        String name = pet.getPetName();
+        Date petAge = pet.getPetAge();
 
-        String petType = "金毛犬";
-        String name = "大黄";
-        int age = 3;
-        double weight = 25.5;
-        String schedule = "下午5点要去公园散步，晚上吃牛肉罐头。";
+        LocalDate birthDate = petAge.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
 
+        Period period = Period.between(birthDate, LocalDate.now());
+
+        int years = period.getYears();
+        int months = period.getMonths();
+
+        String ageText;
+
+        if (years == 0) {
+            ageText = months + "个月";
+        } else {
+            ageText = years + "岁" + months + "个月";
+        }
+        double weight = pet.getPetWeight();
+        String petVariety = pet.getPetVariety();
+        String petSex = pet.getPetSex();
+
+        String userId = UserContext.get("id");
+        LambdaQueryWrapper<Event> eventLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        eventLambdaQueryWrapper.eq(Event::getUserId, userId)
+                .eq(Event::getIsCompleted, 0);
+        List<Event> list = eventService.list(eventLambdaQueryWrapper);
+        String schedule = list.stream()
+                .map(event -> String.format(
+                        "事件名称:%s, 时间:%s, 宠物名称:%s",
+                        event.getEventName(),
+                        event.getEventTime(),
+                        event.getPetName()
+                ))
+                .collect(Collectors.joining("\n"));
+
+
+        LambdaQueryWrapper<Pet> petQuery = new LambdaQueryWrapper<>();
+        petQuery.eq(Pet::getPetMasterId, userId);
+        List<Pet> pets = petService.list(petQuery);
+
+        String otherPets = pets.stream()
+                .map(myPet -> String.format(
+                        "宠物名称:%s, 年龄:%s, 类型:%s, 体重:%skg, 品种:%s, 性别:%s",
+                        myPet.getPetName(),
+                        getAgeText(myPet.getPetAge()),
+                        myPet.getPetType(),
+                        myPet.getPetWeight(),
+                        myPet.getPetVariety(),
+                        myPet.getPetSex()
+                ))
+                .collect(Collectors.joining("\n"));
+
+        Date now = new Date();
+        // 转换为年月日
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String nowDate = sdf.format(now);
+
+        // TODO 后期可以加入 需要注意的事情，例如系统检测到： XXX 已经3个月没打疫苗了 需要提醒用户打疫苗
+
+        // 例如：检查到疫苗到期
+        //↓
+        //查询附近宠物医院
+        //↓
+        //生成预约建议
+        //↓
+        //推送给主人 1. AI 回复中提醒 2. 微信API推送 每天凌晨
         PromptTemplate promptTemplate = PromptTemplate.from("""
                 你是一只可爱的{{petType}}，正在和你的主人聊天。
                 你的名字叫：{{name}}。
                 你今年 {{age}} 岁了，现在的体重是 {{weight}} kg。
+                你的性别为：
+                {{petSex}}
+                你的品种为：
+                {{petVariety}}。
                 
-                包括主人和你的后续的日程安排是：
+                家里一共有的小伙伴（包括你）
+                {{otherPets}}
+                
+                包括主人的后续的日程安排是（如果有过期的需要立刻提醒，当前日期为：{{dateNow}}）：
                 {{schedule}}
                 
                 你的性格和行为要求：
@@ -127,9 +210,13 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         Map<String, Object> data = new HashMap<>();
         data.put("petType", petType);
         data.put("name", name);
-        data.put("age", age);
+        data.put("age", ageText);
+        data.put("petSex", petSex);
         data.put("weight", weight);
+        data.put("petVariety", petVariety);
         data.put("schedule", schedule);
+        data.put("dateNow", nowDate);
+        data.put("otherPets", otherPets);
         if (latestSummary != null) {
             data.put("chat_summary", latestSummary.getContent());
         }
@@ -205,5 +292,19 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
     @Override
     public void deleteMessages(Object memoryId) {
 
+    }
+
+    private String getAgeText(Date birthDate) {
+        LocalDate birth = birthDate.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        Period period = Period.between(birth, LocalDate.now());
+
+        if (period.getYears() == 0) {
+            return period.getMonths() + "个月";
+        }
+
+        return period.getYears() + "岁" + period.getMonths() + "个月";
     }
 }

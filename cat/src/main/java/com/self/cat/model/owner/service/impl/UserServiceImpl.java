@@ -5,6 +5,7 @@ import com.self.cat.common.utils.PasswordUtil;
 import com.self.cat.model.owner.controller.UserController;
 import com.self.cat.model.owner.domain.User;
 import com.self.cat.model.owner.domain.dto.UserRegisterDto;
+import com.self.cat.model.owner.domain.vo.UserProfileVo;
 import com.self.cat.model.owner.service.UserService;
 import com.self.cat.model.owner.mapper.UserMapper;
 import io.jsonwebtoken.Claims;
@@ -84,6 +85,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                 .setExpiration(expiration)     // Add end time
                 .signWith(secretKey)                 // Add signature
                 .compact();
+    }
+
+    @Override
+    public UserProfileVo getMyProfile(Long id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            return null;
+        }
+        return new UserProfileVo(user.getUsername(), user.getId());
     }
 }
 

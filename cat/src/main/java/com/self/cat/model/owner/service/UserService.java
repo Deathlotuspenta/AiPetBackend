@@ -3,6 +3,7 @@ package com.self.cat.model.owner.service;
 import com.self.cat.model.owner.domain.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.self.cat.model.owner.domain.dto.UserRegisterDto;
+import com.self.cat.model.owner.domain.vo.UserProfileVo;
 
 /**
 * @author Administrator
@@ -16,4 +17,6 @@ public interface UserService extends IService<User> {
     User login(String phone, String password);
 
     String createJwt(User user);
+
+    UserProfileVo getMyProfile(Long id);
 }

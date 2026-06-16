@@ -1,25 +1,31 @@
 package com.self.cat.model.owner.controller;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.self.cat.common.enums.ResultCode;
 import com.self.cat.common.exception.UserException;
 import com.self.cat.common.http.HttpResult;
 import com.self.cat.common.utils.UserContext;
+import com.self.cat.common.utils.WeChatTokenService;
 import com.self.cat.model.owner.domain.User;
 import com.self.cat.model.owner.domain.dto.LoginDto;
 import com.self.cat.model.owner.domain.dto.LoginWxDto;
 import com.self.cat.model.owner.domain.dto.UserRegisterDto;
+import com.self.cat.model.owner.domain.vo.UserProfileVo;
 import com.self.cat.model.owner.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.Date;
 import java.util.concurrent.TimeUnit;
+
 
 @Slf4j
 @RestController
@@ -32,12 +38,22 @@ public class UserController {
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
     private static final String TOKEN_KEY = "token:";
 
-    @PostMapping("/checkLoginStatus")
+    @Value("${wx.appId}")
+    private String APP_ID;
+
+    @Value("${wx.appSecret}")
+    private String APP_SECRET;
+
+    @Autowired
+    private WeChatTokenService weChatTokenService;
+
+    @GetMapping("/checkLoginStatus")
     @Operation(summary = "检查登录状态")
     public HttpResult<Boolean> checkLoginStatus() {
-
+        log.info("开始检查登录状态");
         // Get user ID
         String userId = UserContext.get("id");
 
@@ -54,6 +70,17 @@ public class UserController {
 
         // The token is valid
         return HttpResult.success(true);
+    }
+
+    @GetMapping("/logout")
+    @Operation(summary = "用户登出")
+    public HttpResult<String> logout() {
+        String userId = UserContext.get("id");
+        if (userId != null) {
+            String redisKey = TOKEN_KEY + userId;
+            redisTemplate.delete(redisKey);
+        }
+        return HttpResult.success("登出成功");
     }
 
     @PostMapping("/userRegister")
@@ -73,18 +100,296 @@ public class UserController {
         return HttpResult.error(ResultCode.ERROR.getCode(), ResultCode.ERROR.getMessage());
     }
 
-    @PostMapping("/loginWx")
-    @Operation(summary = "微信登录")
-    public HttpResult<String> loginWx(@RequestBody LoginWxDto loginWxDto) {
-        log.info("微信登录控制器被执行");
+    @PostMapping("/checkUserBindWx")
+    @Operation(summary = "检查用户是否绑定微信")
+    public HttpResult<Boolean> checkUserBindWx(@RequestBody LoginWxDto loginWxDto) {
+        log.info("appid: {}, appSecret: {}", APP_ID, APP_SECRET);
         String code = loginWxDto.getCode();
         String phoneCode = loginWxDto.getPhoneCode();
 
+        // 验证 code 是否为空
+        if (code == null || code.isEmpty()) {
+            log.error("微信登录失败：code 为空");
+            return HttpResult.error(40029, "无效的 code，请重新获取");
+        }
+
         // 拿着code 换取 openId 如果OpenId 不存在就获取通过phoneCode真实手机号 进行静默注册
+        String url = "https://api.weixin.qq.com/sns/jscode2session?" +
+                "appid=" + APP_ID +
+                "&secret=" + APP_SECRET +
+                "&js_code=" + code +
+                "&grant_type=authorization_code";
 
+        log.info("请求微信接口 URL: {}", url);
 
-        // 组装JWT返回给前端
-        return null;
+        RestTemplate restTemplate = new RestTemplate();
+        try {
+
+            // 发送请求并获取 JSON 响应
+            String response = restTemplate.getForObject(url, String.class);
+            log.info("微信登录控制器获取到的数据为：{}", response);
+
+            // 检查微信返回的错误
+            if (response != null && response.contains("errcode")) {
+                log.error("微信接口返回错误: {}", response);
+                // 解析错误码
+                if (response.contains("40029")) {
+                    return HttpResult.error(40029, "无效的 code，可能已过期或已被使用，请重新登录");
+                } else if (response.contains("40013")) {
+                    return HttpResult.error(40013, "AppID 无效，请检查配置");
+                } else if (response.contains("40002")) {
+                    return HttpResult.error(40002, "AppSecret 无效，请检查配置");
+                }
+                return HttpResult.error(500, "微信登录失败: " + response);
+            }
+            if (response == null) {
+                return HttpResult.error(500, "微信登录失败: 无法获取微信接口返回数据");
+            }
+            // 解析 response，获取 openid 和 session_key
+            JSONObject wxResponseJson = JSON.parseObject(response);
+            String openid = wxResponseJson.getString("openid");
+            String session_key = wxResponseJson.getString("session_key");
+            log.info("openid: {}, session_key: {}", openid, session_key);
+
+            // 根据 openid 查询用户，不存在则通过 phoneCode 获取手机号并注册
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getOpenId, openid);
+            User user = userService.getOne(queryWrapper);
+            if (user == null){
+                return HttpResult.success(true);
+            }
+            String phone = user.getPhone();
+            if (phone == null || phone.isEmpty()) {
+                return HttpResult.success(true);
+            }
+            return HttpResult.success(false);
+        } catch (Exception e) {
+            log.error("微信接口返回错误: {}", e.getMessage());
+            return HttpResult.error(500, "微信接口返回错误");
+        }
+    }
+
+    @PostMapping("/v2/loginWx")
+    @Operation(summary = "微信登录V2(无需微信获取手机号,直接通过code换取openid进行登录，适用于不需要手机号的场景)")
+    public HttpResult<String> loginWxV2(@RequestBody LoginWxDto loginWxDto) {
+        log.info("appid: {}, appSecret: {}", APP_ID, APP_SECRET);
+        String code = loginWxDto.getCode();
+        String phoneCode = loginWxDto.getPhoneCode();
+
+        // 验证 code 是否为空
+        if (code == null || code.isEmpty()) {
+            log.error("微信登录失败：code 为空");
+            return HttpResult.error(40029, "无效的 code，请重新获取");
+        }
+
+        // 拿着code 换取 openId 如果OpenId 不存在就获取通过phoneCode真实手机号 进行静默注册
+        String url = "https://api.weixin.qq.com/sns/jscode2session?" +
+                "appid=" + APP_ID +
+                "&secret=" + APP_SECRET +
+                "&js_code=" + code +
+                "&grant_type=authorization_code";
+
+        log.info("请求微信接口 URL: {}", url);
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        try {
+// Send the request and get the JSON response
+            // 发送请求并获取 JSON 响应
+            String response = restTemplate.getForObject(url, String.class);
+            log.info("微信登录控制器获取到的数据为：{}", response);
+
+            // 检查微信返回的错误
+            if (response != null && response.contains("errcode")) {
+                log.error("微信接口返回错误: {}", response);
+                // 解析错误码
+                if (response.contains("40029")) {
+                    return HttpResult.error(40029, "无效的 code，可能已过期或已被使用，请重新登录");
+                } else if (response.contains("40013")) {
+                    return HttpResult.error(40013, "AppID 无效，请检查配置");
+                } else if (response.contains("40002")) {
+                    return HttpResult.error(40002, "AppSecret 无效，请检查配置");
+                }
+                return HttpResult.error(500, "微信登录失败: " + response);
+            }
+            if (response == null) {
+                return HttpResult.error(500, "微信登录失败: 无法获取微信接口返回数据");
+            }
+            // 解析 response，获取 openid 和 session_key
+            JSONObject wxResponseJson = JSON.parseObject(response);
+            String openid = wxResponseJson.getString("openid");
+            String session_key = wxResponseJson.getString("session_key");
+            log.info("openid: {}, session_key: {}", openid, session_key);
+
+            // 根据 openid 查询用户，不存在则通过 phoneCode 获取手机号并注册
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getOpenId, openid);
+            User user = userService.getOne(queryWrapper);
+            if (user == null){
+                String phoneNumber = loginWxDto.getPhoneCode();
+                LambdaQueryWrapper<User> phoneQuery = new LambdaQueryWrapper<>();
+                phoneQuery.eq(User::getPhone, phoneNumber);
+                User existingUser = userService.getOne(phoneQuery);
+
+                if (existingUser != null) {
+                    // 用户已存在，仅仅绑定 openid (User already exists, just bind openid)
+                    existingUser.setOpenId(openid);
+                    existingUser.setUpdateTime(new Date());
+                    userService.updateById(existingUser);
+
+                    // 把找到的用户赋值给主对象，用于后续生成 Token (Assign to main object for later Token generation)
+                    user = existingUser;
+                    log.info("老用户绑定微信成功，手机号: {}", phoneNumber);
+                } else {
+                    // 数据库中完全没有这个手机号，执行真正的新注册 (Phone number not in database, execute true new registration)
+                    user = new User();
+                    user.setUsername("尾号【" + phoneNumber.substring(phoneNumber.length() - 4) + "】小主"); // 设置默认用户名为手机号后4位
+                    user.setPhone(phoneNumber);
+                    user.setOpenId(openid);
+                    user.setCreateTime(new Date());
+                    user.setUpdateTime(new Date());
+                    userService.save(user);
+                    log.info("新用户注册成功，手机号: {}", phoneNumber);
+                }
+            }else{
+                user.setPhone(phoneCode);
+                user.setUpdateTime(new Date());
+                userService.updateById(user);
+            }
+            log.info("phoneCode:{}", phoneCode);
+            log.info("code:{}", code);
+            // 生成 JWT 返回给前端
+            String jwt = userService.createJwt(user);
+
+            // 存储到redis
+            redisTemplate.opsForValue().set(TOKEN_KEY + user.getId(), jwt, 30, TimeUnit.DAYS);
+            // 组装JWT返回给前端
+            return HttpResult.success(jwt);
+        } catch (Exception e) {
+            log.error("微信登录失败：{}", e.getMessage());
+            return HttpResult.error(500, "微信登录失败");
+        }
+    }
+
+    @PostMapping("/loginWx")
+    @Operation(summary = "微信登录")
+    public HttpResult<String> loginWx(@RequestBody LoginWxDto loginWxDto) {
+        log.info("appid: {}, appSecret: {}", APP_ID, APP_SECRET);
+        String code = loginWxDto.getCode();
+        String phoneCode = loginWxDto.getPhoneCode();
+
+        // 验证 code 是否为空
+        if (code == null || code.isEmpty()) {
+            log.error("微信登录失败：code 为空");
+            return HttpResult.error(40029, "无效的 code，请重新获取");
+        }
+
+        // 拿着code 换取 openId 如果OpenId 不存在就获取通过phoneCode真实手机号 进行静默注册
+        String url = "https://api.weixin.qq.com/sns/jscode2session?" +
+                "appid=" + APP_ID +
+                "&secret=" + APP_SECRET +
+                "&js_code=" + code +
+                "&grant_type=authorization_code";
+
+        log.info("请求微信接口 URL: {}", url);
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        try {
+            // Send the request and get the JSON response
+            // 发送请求并获取 JSON 响应
+            String response = restTemplate.getForObject(url, String.class);
+            log.info("微信登录控制器获取到的数据为：{}", response);
+
+            // 检查微信返回的错误
+            if (response != null && response.contains("errcode")) {
+                log.error("微信接口返回错误: {}", response);
+                // 解析错误码
+                if (response.contains("40029")) {
+                    return HttpResult.error(40029, "无效的 code，可能已过期或已被使用，请重新登录");
+                } else if (response.contains("40013")) {
+                    return HttpResult.error(40013, "AppID 无效，请检查配置");
+                } else if (response.contains("40002")) {
+                    return HttpResult.error(40002, "AppSecret 无效，请检查配置");
+                }
+                return HttpResult.error(500, "微信登录失败: " + response);
+            }
+            if (response == null) {
+                return HttpResult.error(500, "微信登录失败: 无法获取微信接口返回数据");
+            }
+            // 解析 response，获取 openid 和 session_key
+            JSONObject wxResponseJson = JSON.parseObject(response);
+            String openid = wxResponseJson.getString("openid");
+            String session_key = wxResponseJson.getString("session_key");
+            log.info("openid: {}, session_key: {}", openid, session_key);
+
+            // 根据 openid 查询用户，不存在则通过 phoneCode 获取手机号并注册
+            LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(User::getOpenId, openid);
+            User user = userService.getOne(queryWrapper);
+            if (user == null) {
+                user = new User();
+                user.setOpenId(openid);
+                // 解析得到用户手机号
+                String accessToken = weChatTokenService.getAccessToken();
+                log.info("accessToken:{}", accessToken);
+                JSONObject accessTokenJson = JSON.parseObject(accessToken);
+                accessToken = accessTokenJson.getString("access_token");
+                String phoneUrl = "https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=" + accessToken;
+                JSONObject phoneRequest = new JSONObject();
+                phoneRequest.put("code", phoneCode);
+                String phoneResponse = restTemplate.postForObject(phoneUrl, phoneRequest.toString(), String.class);
+                log.info("phoneResponse: {}", phoneResponse);
+                if (phoneResponse == null) {
+                    return HttpResult.error(500, "微信登录失败: 无法获取微信接口返回数据");
+                }
+                JSONObject phoneResponseJson = JSON.parseObject(phoneResponse);
+                if (phoneResponseJson.containsKey("errcode") && phoneResponseJson.getIntValue("errcode") != 0) {
+                    log.error("微信接口返回错误: {}", phoneResponse);
+                    return HttpResult.error(500, "微信登录失败: " + phoneResponse);
+                }
+                String phoneNumber = phoneResponseJson.getJSONObject("phone_info").getString("phoneNumber");
+                // 2. 根据手机号查询用户 (Find by phone number)
+                LambdaQueryWrapper<User> phoneQuery = new LambdaQueryWrapper<>();
+                phoneQuery.eq(User::getPhone, phoneNumber);
+                User existingUser = userService.getOne(phoneQuery);
+
+                if (existingUser != null) {
+                    // 用户已存在，仅仅绑定 openid (User already exists, just bind openid)
+                    existingUser.setOpenId(openid);
+                    existingUser.setUpdateTime(new Date());
+                    userService.updateById(existingUser);
+
+                    // 把找到的用户赋值给主对象，用于后续生成 Token (Assign to main object for later Token generation)
+                    user = existingUser;
+                    log.info("老用户绑定微信成功，手机号: {}", phoneNumber);
+                } else {
+                    // 数据库中完全没有这个手机号，执行真正的新注册 (Phone number not in database, execute true new registration)
+                    user = new User();
+                    user.setUsername("尾号【" + phoneNumber.substring(phoneNumber.length() - 4) + "】小主"); // 设置默认用户名为手机号后4位
+                    user.setPhone(phoneNumber);
+                    user.setOpenId(openid);
+                    user.setCreateTime(new Date());
+                    user.setUpdateTime(new Date());
+                    userService.save(user);
+                    log.info("新用户注册成功，手机号: {}", phoneNumber);
+                }
+            }
+
+            log.info("phoneCode:{}", phoneCode);
+            log.info("code:{}", code);
+            // 生成 JWT 返回给前端
+            String jwt = userService.createJwt(user);
+
+            // 存储到redis
+            redisTemplate.opsForValue().set(TOKEN_KEY + user.getId(), jwt, 30, TimeUnit.DAYS);
+            // 组装JWT返回给前端
+            return HttpResult.success(jwt);
+
+        } catch (Exception e) {
+            log.error("微信登录异常", e);
+            return HttpResult.error(500, "微信登录异常: " + e.getMessage());
+        }
     }
 
     @PostMapping("/login")
@@ -109,5 +414,12 @@ public class UserController {
         redisTemplate.opsForValue().set(redisKey, jwt, 30, TimeUnit.DAYS);
 
         return HttpResult.success(jwt);
+    }
+
+    @GetMapping("/getMyProfile")
+    @Operation(summary = "获取用户信息")
+    public HttpResult<UserProfileVo> getMyProfile() {
+        String id = UserContext.get("id");
+        return HttpResult.success(userService.getMyProfile(Long.valueOf(id)));
     }
 }

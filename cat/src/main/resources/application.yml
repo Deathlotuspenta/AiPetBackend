@@ -2,7 +2,7 @@ spring:
   application:
     name: cat
   datasource:
-    url: jdbc:mysql://172.30.0.4:3306/pet?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://10.29.100.195:3306/pet?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
     username: ${DB_USERNAME:mysql}
     password: ${DB_PASSWORD:default_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -10,7 +10,7 @@ spring:
     redis:
       #      password: root
       password: ${REDIS_PASSWORD}
-      host: 172.30.0.4
+      host: 10.0.0.13
       database: 10
       port: 6379
       # 新增：Lettuce连接池配置
@@ -24,3 +24,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+wx:
+  appId: ${WX_APPID}
+  appSecret: ${WX_SECRET}

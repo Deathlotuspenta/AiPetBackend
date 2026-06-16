@@ -38,6 +38,12 @@ public class Pet {
     private String petName;
 
     /**
+     * 宠物性别
+     */
+    @TableField(value = "pet_sex")
+    private String petSex;
+
+    /**
      * 宠物头像
      */
     @TableField(value = "pet_avatar")

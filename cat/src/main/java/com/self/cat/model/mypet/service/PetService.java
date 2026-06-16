@@ -16,4 +16,6 @@ public interface PetService extends IService<Pet> {
     List<Pet> getMyPetList(Integer id);
 
     boolean savePet(SavePetInformationDto pet);
+
+    boolean hasPermission(Long userId, Long resourceId);
 }
