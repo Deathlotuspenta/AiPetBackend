@@ -14,6 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 @Slf4j
@@ -157,6 +161,14 @@ public class EventController {
     public HttpResult<String> addMyEvent(@RequestBody AddEventDto addEventDto) {
         Event event = new Event();
         BeanUtils.copyProperties(addEventDto, event);
+        String eventTime = addEventDto.getEventTime();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        try {
+            Date date = sdf.parse(eventTime);
+            event.setEventTime(date);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
         event.setUserId(Integer.parseInt(UserContext.get("id")));
         event.setCreateTime(new Date());
         event.setUpdateTime(new Date());
