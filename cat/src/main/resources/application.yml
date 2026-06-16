@@ -10,9 +10,9 @@ spring:
     redis:
       #      password: root
       password: ${REDIS_PASSWORD}
-      host: 10.0.0.13
+      host: cq-crs-4idn6k62.sql.tencentcdb.com
       database: 10
-      port: 6379
+      port: 28335
       # 新增：Lettuce连接池配置
       lettuce:
         pool:
