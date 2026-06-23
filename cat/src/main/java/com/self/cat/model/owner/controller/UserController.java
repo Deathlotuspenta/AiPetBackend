@@ -174,7 +174,7 @@ public class UserController {
 
             // 根据 openid 查询用户，不存在则通过 phoneCode 获取手机号并注册
             LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(User::getOpenId, openId);
+            queryWrapper.eq(User::getOpenId, openid);
             User user = userService.getOne(queryWrapper);
             if (user == null) {
                 return HttpResult.success(true);
@@ -296,7 +296,7 @@ public class UserController {
 
             // 根据 openid 查询用户，不存在则通过 phoneCode 获取手机号并注册
             LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(User::getOpenId, openId);
+            queryWrapper.eq(User::getOpenId, openid);
             User user = userService.getOne(queryWrapper);
             if (user == null) {
                 String phoneNumber = loginWxDto.getPhoneCode();
@@ -306,7 +306,7 @@ public class UserController {
 
                 if (existingUser != null) {
                     // 用户已存在，仅仅绑定 openid (User already exists, just bind openid)
-                    existingUser.setOpenId(openId);
+                    existingUser.setOpenId(openid);
                     existingUser.setUpdateTime(new Date());
                     userService.updateById(existingUser);
 
@@ -318,7 +318,7 @@ public class UserController {
                     user = new User();
                     user.setUsername("尾号【" + phoneNumber.substring(phoneNumber.length() - 4) + "】小主"); // 设置默认用户名为手机号后4位
                     user.setPhone(phoneNumber);
-                    user.setOpenId(openId);
+                    user.setOpenId(openid);
                     user.setCreateTime(new Date());
                     user.setUpdateTime(new Date());
                     userService.save(user);
