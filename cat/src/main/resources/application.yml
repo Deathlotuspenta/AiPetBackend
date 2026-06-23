@@ -1,27 +1,14 @@
+# ==================== 公共配置（所有环境共享） ====================
 spring:
   application:
     name: cat
-  datasource:
-    url: jdbc:mysql://10.29.100.195:3306/pet?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
-    username: ${DB_USERNAME:mysql}
-    password: ${DB_PASSWORD:default_password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  data:
-    redis:
-      #      password: root
-      password: ${REDIS_PASSWORD}
-      host: cq-crs-4idn6k62.sql.tencentcdb.com
-      database: 10
-      port: 28335
-      # 新增：Lettuce连接池配置
-      lettuce:
-        pool:
-          max-active: 16       # 最大连接数（建议：CPU核心数*2，或根据Redis并发量调整）
-          max-idle: 8          # 最大空闲连接
-          min-idle: 4          # 最小空闲连接
-          max-wait: 1000       # 获取连接的最大等待时间（毫秒，避免无限阻塞）
-        shutdown-timeout: 2000 # 关闭连接池的超时时间
+  # Maven profile 控制激活哪个环境
+  # 打包时：mvn package -P dev  或  mvn package -P prod
+  # IDEA 里：Maven 面板勾选对应 profile
+  profiles:
+    active: @spring.profiles.active@
 
+# JWT 和微信密钥仍从环境变量取（不写死在 yml 里，不进 git）
 jwt:
   secret: ${JWT_SECRET}
 
