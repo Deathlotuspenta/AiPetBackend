@@ -247,7 +247,7 @@ public class UserController {
 
         log.info("appid: {}, appSecret: {}", APP_ID, APP_SECRET);
         String code = loginWxDto.getCode();
-        String phoneCode = loginWxDto.getPhoneCode();
+//        String phoneCode = loginWxDto.getPhoneCode();
 
         // 验证 code 是否为空
         if (code == null || code.isEmpty()) {
@@ -325,7 +325,7 @@ public class UserController {
                     log.info("新用户注册成功，手机号: {}", phoneNumber);
                 }
             } else {
-                user.setPhone(phoneCode);
+//                user.setPhone(phoneCode);
                 user.setUpdateTime(new Date());
                 userService.updateById(user);
             }
