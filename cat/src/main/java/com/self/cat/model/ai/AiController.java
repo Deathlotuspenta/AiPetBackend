@@ -16,6 +16,7 @@ import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.service.TokenStream;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -24,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/AiController")
 @Tag(name = "Ai接口",description = "Ai相关接口，用于聊天 or 记录事情")
@@ -107,6 +109,8 @@ public class AiController {
         // 4. Get the TokenStream from AI
         // 4. 从 AI 获取 TokenStream
         TokenStream tokenStream = catAiAgent.chat(conversationId, userMessage);
+
+        log.info("开始发送/chat请求");
 
         // 5. Handle the stream events
         // 5. 处理流事件
