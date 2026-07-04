@@ -10,8 +10,8 @@ spring:
 
 # JWT 和微信密钥仍从环境变量取（不写死在 yml 里，不进 git）
 jwt:
-  secret: ${JWT_SECRET}
+  secret: "qW8eR3tY6uI9oP2aS5dF8gH1jK4lZ7xC0vB3nN6mQ9wE2rT5yU8iO1pA4sD7fG0h"
 
 wx:
-  appId: ${WX_APPID}
-  appSecret: ${WX_SECRET}
+  appId: "wx549bac472e701c93"
+  appSecret: "3a440b4db53b7cab92127c771aaad7d1"
