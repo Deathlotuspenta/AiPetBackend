@@ -123,7 +123,19 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         } else {
             ageText = years + "岁" + months + "个月";
         }
-        double weight = pet.getPetWeight();
+        Double weight = pet.getPetWeight();
+
+// 2. Make a new String variable to show to the user.
+        String displayWeight;
+
+// 3. Check if the weight is null.
+        if (weight == null) {
+            // If null, save the default text.
+            displayWeight = "未填写";
+        } else {
+            // If not null, change the number into a string.
+            displayWeight = String.valueOf(weight);
+        }
         String petVariety = pet.getPetVariety();
         String petSex = pet.getPetSex();
 
@@ -213,7 +225,7 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         data.put("name", name);
         data.put("age", ageText);
         data.put("petSex", petSex);
-        data.put("weight", weight);
+        data.put("weight", displayWeight);
         data.put("petVariety", petVariety);
         data.put("schedule", schedule);
         data.put("dateNow", nowDate);
