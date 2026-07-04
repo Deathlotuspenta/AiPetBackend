@@ -226,7 +226,7 @@ public class UserController {
                         log.info("新用户注册成功，手机号: {}", phoneNumber);
                     }
                 } else {
-                    user.setPhone(phoneCode);
+//                    user.setPhone(phoneCode);
                     user.setUpdateTime(new Date());
                     userService.updateById(user);
                 }
