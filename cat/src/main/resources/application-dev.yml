@@ -9,15 +9,15 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      host: 172.30.0.4
-      port: 6379
+      host: cq-crs-pk1oovow.sql.tencentcdb.com
+      port: 20209
       database: 10
-      password: "Jirong199410!"
+      password: "lcwyz.0000"
       lettuce:
         pool:
-          max-active: 8
-          max-idle: 4
-          min-idle: 2
+          max-active: 16
+          max-idle: 8
+          min-idle: 4
           max-wait: 1000
         shutdown-timeout: 2000
 
