@@ -107,21 +107,25 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
         String name = pet.getPetName();
         Date petAge = pet.getPetAge();
 
-        LocalDate birthDate = petAge.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
-
-        Period period = Period.between(birthDate, LocalDate.now());
-
-        int years = period.getYears();
-        int months = period.getMonths();
-
+        // 计算主宠物年龄，petAge 可能为 null（未填写）
         String ageText;
+        if (petAge != null) {
+            LocalDate birthDate = petAge.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
 
-        if (years == 0) {
-            ageText = months + "个月";
+            Period period = Period.between(birthDate, LocalDate.now());
+
+            int years = period.getYears();
+            int months = period.getMonths();
+
+            if (years == 0) {
+                ageText = months + "个月";
+            } else {
+                ageText = years + "岁" + months + "个月";
+            }
         } else {
-            ageText = years + "岁" + months + "个月";
+            ageText = "未填写";
         }
         Double weight = pet.getPetWeight();
 
@@ -308,6 +312,9 @@ public class DatabaseMemoryStore implements ChatMemoryStore {
     }
 
     private String getAgeText(Date birthDate) {
+        // birthDate 可能为 null（petAge 未填写）
+        if (birthDate == null) return "未填写";
+
         LocalDate birth = birthDate.toInstant()
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
