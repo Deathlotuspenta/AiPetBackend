@@ -84,8 +84,55 @@ public class AiController {
         return HttpResult.success(conversation.getId());
     }
 
+    // ── 非流式同步返回（devtools 兜底） ──
+    @PostMapping("/chatSync")
+    @Operation(summary = "聊天（非流式同步返回，用于 devtools 调试或网络受限场景）")
+    public HttpResult<String> chatSync(@RequestBody MessageDto message) {
+        log.info("chatSync 非流式聊天请求");
+        String userMessage = message.getMessage();
+        Long conversationId = message.getConversationId();
+
+        // 1. 校验会话是否存在
+        Conversation conversation = conversationService.getById(conversationId);
+        if (conversation == null) {
+            return HttpResult.error(400, "会话不存在,请重新新建会话");
+        }
+
+        // 2. 保存用户消息
+        ChatRecord userRecord = new ChatRecord();
+        userRecord.setConversationId(conversationId);
+        userRecord.setRole("USER");
+        userRecord.setContent(userMessage);
+        userRecord.setCreatedAt(new Date());
+        chatRecordService.save(userRecord);
+
+        try {
+            // 3. 调用同步模型（自动使用 AiConfig 中的 ChatLanguageModel）
+            String reply = catAiAgent.chatSync(conversationId, userMessage);
+            log.info("chatSync 回复完成, conversationId={}, 长度={}",
+                    conversationId, reply != null ? reply.length() : 0);
+
+            // 4. 保存 AI 回复
+            ChatRecord aiRecord = new ChatRecord();
+            aiRecord.setConversationId(conversationId);
+            aiRecord.setRole("AI");
+            aiRecord.setContent(reply);
+            aiRecord.setCreatedAt(new Date());
+            chatRecordService.save(aiRecord);
+
+            // 5. 异步触发摘要检查
+            chatSummaryService.summarizeAndCleanOldMessages(conversationId);
+
+            return HttpResult.success(reply);
+        } catch (Exception e) {
+            log.error("chatSync 异常, conversationId={}", conversationId, e);
+            return HttpResult.error(500, "AI 响应失败: " + e.getMessage());
+        }
+    }
+
+    // ── SSE 流式聊天 ──
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "聊天")
+    @Operation(summary = "聊天（SSE 流式）")
     public SseEmitter chat(@RequestBody MessageDto message) {
         log.info("开启AI聊天！");
         String userMessage = message.getMessage();
