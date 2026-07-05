@@ -87,7 +87,7 @@ public class AiController {
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "聊天")
     public SseEmitter chat(@RequestBody MessageDto message) {
-
+        log.info("开启AI聊天！");
         String userMessage = message.getMessage();
         Long conversationId = message.getConversationId();
 
@@ -113,7 +113,7 @@ public class AiController {
         log.info("开始发送/chat请求");
 
         // 5. Handle the stream events
-        // 5. 处理流事件
+        // 5. 处理流事件a
         tokenStream
                 .onPartialResponse(token -> {
                     // When a new word arrives, send it to the frontend
